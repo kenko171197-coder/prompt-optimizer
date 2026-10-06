@@ -8,6 +8,7 @@ import {
   type ImageResult,
   type IImageStorageService,
   type ImageInputRef,
+  type InputImageRole,
   type PromptAssetBinding,
   type PromptSessionOrigin,
 } from '@prompt-optimizer/core'
@@ -47,7 +48,11 @@ export interface TestVariantConfig {
 export interface MultiImageSessionInputItem extends ImageInputRef {
   id: string
   assetId: string | null
+  role: InputImageRole | null
 }
+
+const parseInputImageRole = (value: unknown): InputImageRole | null =>
+  value === 'character' || value === 'scene' ? value : null
 
 export interface ImageMultiImageSessionState {
   originalPrompt: string
@@ -494,6 +499,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
         assetId: null,
         b64: image.b64,
         mimeType: image.mimeType || 'image/png',
+        role: null,
       },
     ]
     touch()
@@ -505,7 +511,15 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
       assetId: null,
       b64: image.b64,
       mimeType: image.mimeType || 'image/png',
+      role: null,
     }))
+    touch()
+  }
+
+  const setInputImageRole = (id: string, role: InputImageRole | null) => {
+    inputImages.value = inputImages.value.map((item) =>
+      item.id === id ? { ...item, role: parseInputImageRole(role) } : item,
+    )
     touch()
   }
 
@@ -588,6 +602,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
           id: image.id,
           assetId: await saveInputImage(image, imageStorageService),
           mimeType: image.mimeType || 'image/png',
+          role: image.role,
         })),
       )
 
@@ -683,6 +698,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
           assetId,
           b64,
           mimeType,
+          role: parseInputImageRole(record.role),
         } satisfies MultiImageSessionInputItem
       }),
     )
@@ -790,6 +806,7 @@ export const useImageMultiImageSession = defineStore('imageMultiImageSession', (
     replaceInputImages,
     removeInputImage,
     reorderInputImages,
+    setInputImageRole,
     clearContent,
     updateAssetBinding: assetBindingState.updateAssetBinding,
     clearAssetBinding: assetBindingState.clearAssetBinding,

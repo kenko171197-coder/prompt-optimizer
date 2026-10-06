@@ -75,6 +75,12 @@ export type ProSubMode = "multi" | "variable"; // Pro 模式（多消息/变量�
 export type ImageSubMode = "text2image" | "image2image" | "multiimage"; // 图像模式
 
 /**
+ * What a multi-image input is used for: the character to keep consistent, or
+ * the scene / background to place it in. `null` means no role was assigned.
+ */
+export type InputImageRole = "character" | "scene";
+
+/**
  * 优化请求接口
  */
 export interface OptimizationRequest {
@@ -83,6 +89,8 @@ export interface OptimizationRequest {
   templateId?: string;
   modelKey: string;
   inputImages?: ImageInputRef[];
+  // Optional role per input image, aligned by index with inputImages
+  inputImageRoles?: Array<InputImageRole | null>;
   // 🆕 上下文模式（用于变量替换策略）
   contextMode?: import("../context/types").ContextMode;
   // 新增：高级模式上下文（可选，保持向后兼容）

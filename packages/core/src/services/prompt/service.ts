@@ -5,6 +5,7 @@ import {
   CustomConversationRequest,
   ConversationMessage,
   ToolDefinition,
+  InputImageRole,
 } from "./types";
 import { Message, StreamHandlers, ILLMService } from "../llm/types";
 import { PromptRecord } from "../history/types";
@@ -898,12 +899,43 @@ export class PromptService implements IPromptService {
     }
 
     return JSON.stringify(
-      request.inputImages.map((image, index) => ({
-        index: index + 1,
-        label: `Image ${index + 1}`,
-        mimeType: image.mimeType || "image/png",
-      })),
+      request.inputImages.map((image, index) => {
+        const role = this.getInputImageRole(request, index);
+        return {
+          index: index + 1,
+          label: `Image ${index + 1}`,
+          mimeType: image.mimeType || "image/png",
+          ...(role ? { role } : {}),
+        };
+      }),
     );
+  }
+
+  private getInputImageRole(
+    request: OptimizationRequest,
+    index: number,
+  ): InputImageRole | null {
+    const role = request.inputImageRoles?.[index];
+    return role === "character" || role === "scene" ? role : null;
+  }
+
+  /**
+   * Images the user tagged with a role, for templates to render as
+   * `{{#inputImageRoles}}Image {{index}} ...{{/inputImageRoles}}`.
+   */
+  private buildInputImageRoles(
+    request: OptimizationRequest,
+  ): Array<{ index: number; role: InputImageRole; isCharacter: boolean; isScene: boolean }> {
+    if (!this.hasInputImages(request)) {
+      return [];
+    }
+
+    return request.inputImages.flatMap((_, index) => {
+      const role = this.getInputImageRole(request, index);
+      return role
+        ? [{ index: index + 1, role, isCharacter: role === "character", isScene: role === "scene" }]
+        : [];
+    });
   }
 
   private async resolveOptimizationMessages(request: OptimizationRequest): Promise<Message[]> {
@@ -921,6 +953,8 @@ export class PromptService implements IPromptService {
       );
     }
 
+    const inputImageRoles = this.buildInputImageRoles(request);
+
     const baseContext: TemplateContext = {
       originalPrompt: request.targetPrompt,
       optimizationMode: request.optimizationMode,
@@ -930,6 +964,8 @@ export class PromptService implements IPromptService {
       hasInputImages: this.hasInputImages(request),
       inputImageCount: this.hasInputImages(request) ? request.inputImages.length : 0,
       inputImagesJson: this.buildInputImagesManifest(request),
+      inputImageRoles,
+      hasInputImageRoles: inputImageRoles.length > 0,
     };
 
     const context = TemplateProcessor.createExtendedContext(

@@ -21,7 +21,15 @@ Constraints:
 
 Context:
 - Total attached images: {{inputImageCount}}
-- Image order is semantic order: first image is Image 1, second image is Image 2, and so on.`
+- Image order is semantic order: first image is Image 1, second image is Image 2, and so on.
+{{#hasInputImageRoles}}
+
+Reference roles assigned by the user (hard constraints):
+{{#inputImageRoles}}
+- Image {{index}}: {{#isCharacter}}character reference. Keep the same character identity: face, hairstyle, body shape, outfit and distinctive features.{{/isCharacter}}{{#isScene}}scene reference. Use its environment, layout, lighting and atmosphere as the setting.{{/isScene}}
+{{/inputImageRoles}}
+- The optimized prompt must state which image provides the character and which provides the scene, and how the character is placed in the scene.
+{{/hasInputImageRoles}}`
     },
     {
       role: 'user',
