@@ -5,6 +5,7 @@ import { template as image2imageOptimizeZh } from '../../../src/services/templat
 import { template as designTextEditOptimizeZh } from '../../../src/services/template/default-templates/image-optimize/image2image/design-text-edit-optimize'
 import { template as image2imageJsonZh } from '../../../src/services/template/default-templates/image-optimize/image2image/json-structured-optimize'
 import { template as multiimageOptimizeZh } from '../../../src/services/template/default-templates/image-optimize/multiimage/multiimage-optimize'
+import { template as multiimageOptimizeEn } from '../../../src/services/template/default-templates/image-optimize/multiimage/multiimage-optimize_en'
 
 describe('image multimodal optimize template contracts', () => {
   const context: TemplateContext = {
@@ -36,5 +37,43 @@ describe('image multimodal optimize template contracts', () => {
     expect(combined).toContain('图片')
     expect(combined).not.toContain('"b64"')
     expect(combined).not.toContain('{{inputImagesJson}}')
+  })
+})
+
+describe('multiimage template reference roles', () => {
+  const baseContext: TemplateContext = {
+    originalPrompt: 'Put the character into the scene',
+    hasInputImages: true,
+    inputImageCount: 2,
+    inputImagesJson: '[]',
+  }
+
+  const render = (template: typeof multiimageOptimizeZh, context: TemplateContext) =>
+    TemplateProcessor.processTemplate(template, context).map((message) => message.content).join('\n')
+
+  it('renders assigned character and scene roles', () => {
+    const context: TemplateContext = {
+      ...baseContext,
+      hasInputImageRoles: true,
+      inputImageRoles: [
+        { index: 1, role: 'character', isCharacter: true, isScene: false },
+        { index: 2, role: 'scene', isCharacter: false, isScene: true },
+      ],
+    }
+
+    const en = render(multiimageOptimizeEn, context)
+    expect(en).toContain('- Image 1: character reference.')
+    expect(en).toContain('- Image 2: scene reference.')
+
+    const zh = render(multiimageOptimizeZh, context)
+    expect(zh).toContain('- 图1：人物参考')
+    expect(zh).toContain('- 图2：场景参考')
+  })
+
+  it('omits the roles section when no role is assigned', () => {
+    const context: TemplateContext = { ...baseContext, hasInputImageRoles: false, inputImageRoles: [] }
+
+    expect(render(multiimageOptimizeEn, context)).not.toContain('Reference roles')
+    expect(render(multiimageOptimizeZh, context)).not.toContain('参考用途')
   })
 })

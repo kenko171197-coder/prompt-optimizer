@@ -21,7 +21,15 @@ export const template: Template = {
 
 上下文：
 - 当前共有 {{inputImageCount}} 张已附带图片
-- 图片顺序即语义顺序：第一张是图1，第二张是图2，以此类推`
+- 图片顺序即语义顺序：第一张是图1，第二张是图2，以此类推
+{{#hasInputImageRoles}}
+
+用户为图片指定的参考用途（必须严格遵守）：
+{{#inputImageRoles}}
+- 图{{index}}：{{#isCharacter}}人物参考，保持同一人物身份：面部、发型、体型、服装与显著特征{{/isCharacter}}{{#isScene}}场景参考，使用其环境、布局、光线与氛围作为背景{{/isScene}}
+{{/inputImageRoles}}
+- 优化后的提示词必须写明哪张图提供人物、哪张图提供场景，以及人物如何融入场景
+{{/hasInputImageRoles}}`
     },
     {
       role: 'user',

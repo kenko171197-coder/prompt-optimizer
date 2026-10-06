@@ -12,7 +12,7 @@
       <NLayoutHeader class="theme-header nav-header-enhanced">
         <NFlex justify="space-between" align="center" class="w-full nav-content" :wrap="false" :size="[16, 12]">
           <!-- 左侧：Logo + 标题 + 核心导航 -->
-          <NFlex align="center" :size="16" :wrap="false">
+          <NFlex align="center" :size="16" :wrap="false" class="nav-left">
             <!-- Logo + 标题 -->
             <NButton
               text
@@ -52,6 +52,7 @@
 
       <!-- 主要内容区域 - 严格控制在剩余空间内 -->
       <NLayoutContent has-sider
+        class="main-layout-content"
         style="flex: 1; min-height: 0; overflow: hidden;"
         content-style="height: 100%; max-height: 100%; min-height: 0; box-sizing: border-box; padding: 24px clamp(16px, 2vw, 48px) 40px; display: flex; flex-direction: column; align-items: stretch; overflow: hidden;"
       >
@@ -225,6 +226,72 @@ const openBrandWebsite = async () => {
   .core-navigation {
     margin-left: 8px;
     padding-left: 8px;
+  }
+}
+
+/* Mobile header: brand + actions on the first row, mode navigation below. */
+@media (max-width: 768px) {
+  .nav-header-enhanced {
+    min-height: 0 !important;
+    padding: 8px 12px !important;
+  }
+
+  .nav-content {
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+  }
+
+  .nav-left {
+    display: contents !important;
+  }
+
+  .brand-link {
+    order: 0;
+    flex-shrink: 0;
+    padding: 4px;
+  }
+
+  .nav-actions {
+    order: 1;
+    flex: 1 1 0 !important;
+    min-width: 0;
+    flex-wrap: nowrap !important;
+    /* flex-end would make the leading buttons unreachable once the row scrolls */
+    justify-content: flex-start !important;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .nav-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-actions > * {
+    flex-shrink: 0;
+  }
+
+  .core-navigation {
+    order: 2;
+    flex: 0 0 100%;
+    margin-left: 0;
+    padding-left: 0;
+    border-left: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .core-navigation::-webkit-scrollbar {
+    display: none;
+  }
+
+  .main-layout-content > .n-layout-scroll-container {
+    padding: 12px 12px 24px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-title {
+    display: none;
   }
 }
 

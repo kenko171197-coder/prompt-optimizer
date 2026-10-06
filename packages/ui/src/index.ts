@@ -19,6 +19,7 @@
 import "./styles/index.css";
 import "./styles/scrollbar.css";
 import "./styles/common.css";
+import "./styles/mobile.css";
 // 已移除: import './styles/theme.css' - 完全使用Naive UI主题系统
 
 // 导出插件

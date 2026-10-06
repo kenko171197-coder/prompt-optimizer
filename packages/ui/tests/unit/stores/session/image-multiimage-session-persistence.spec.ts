@@ -91,6 +91,8 @@ describe('Session store (image-multiimage) persistence', () => {
     await store.addInputImage({ b64: 'AAAA', mimeType: 'image/png' })
     await store.addInputImage({ b64: 'BBBB', mimeType: 'image/jpeg' })
     store.reorderInputImages(1, 0)
+    store.setInputImageRole(store.inputImages[0].id, 'scene')
+    store.setInputImageRole(store.inputImages[1].id, 'character')
 
     await store.saveSession()
 
@@ -100,8 +102,8 @@ describe('Session store (image-multiimage) persistence', () => {
 
     expect(restored.originalPrompt).toBe('将图1和图2融合成新画面')
     expect(restored.inputImages).toHaveLength(2)
-    expect(restored.inputImages[0]).toMatchObject({ b64: 'BBBB', mimeType: 'image/jpeg' })
-    expect(restored.inputImages[1]).toMatchObject({ b64: 'AAAA', mimeType: 'image/png' })
+    expect(restored.inputImages[0]).toMatchObject({ b64: 'BBBB', mimeType: 'image/jpeg', role: 'scene' })
+    expect(restored.inputImages[1]).toMatchObject({ b64: 'AAAA', mimeType: 'image/png', role: 'character' })
   })
 
   it('restores test panel layout and variant state together with the workspace session', async () => {

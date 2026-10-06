@@ -1,0 +1,100 @@
+/*
+ * Mobile layout overrides.
+ *
+ * Desktop workspaces use a fixed-height, two-column resizable split where each
+ * pane scrolls on its own. On narrow screens that leaves two cramped columns
+ * (or two half-height stacked panes), so below 768px every workspace split is
+ * stacked into a single column and the whole page scrolls instead.
+ */
+@media (max-width: 768px) {
+  .basic-system-split,
+  .basic-user-split,
+  .context-system-split,
+  .context-user-split,
+  .image-text2image-split,
+  .image-image2image-split,
+  .image-multiimage-split {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-rows: auto !important;
+    row-gap: 16px !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  .basic-system-split > .split-pane,
+  .basic-user-split > .split-pane,
+  .context-system-split > .split-pane,
+  .context-user-split > .split-pane,
+  .image-text2image-split > .split-pane,
+  .image-image2image-split > .split-pane,
+  .image-multiimage-split > .split-pane {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .split-pane > .n-flex {
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .split-divider {
+    display: none !important;
+  }
+
+  /*
+   * Test results rely on height: 100% chains that end at the pane height.
+   * With the pane now auto-sized, give the result area its own viewport-based
+   * height so outputs and generated images still get room and scroll inside.
+   */
+  .split-pane .variant-results-wrap {
+    flex: none !important;
+    height: 70vh;
+    min-height: 360px;
+  }
+
+  /* Test variant controls: let version / model / run wrap inside narrow cells. */
+  .variant-cell__actions {
+    flex-wrap: wrap !important;
+  }
+
+  .variant-cell__actions > :first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  /*
+   * Card headers: keep the title on one line and wrap the extra actions.
+   * Naive UI injects its styles after this file, so the selectors are made
+   * more specific than its own to take effect.
+   */
+  .n-card > .n-card-header {
+    flex-wrap: wrap;
+    row-gap: 6px;
+  }
+
+  .n-card > .n-card-header > .n-card-header__main {
+    min-width: fit-content;
+  }
+
+  .n-card > .n-card-header > .n-card-header__extra {
+    max-width: 100%;
+  }
+
+  /* Larger touch targets for icon-only buttons. */
+  .n-button--small-type.n-button--circle,
+  .n-button--tiny-type.n-button--circle {
+    min-width: 32px;
+    min-height: 32px;
+  }
+
+  /* Modals and drawers use the full screen width. */
+  .n-modal,
+  .n-card.n-modal {
+    max-width: calc(100vw - 16px) !important;
+  }
+
+  .n-drawer {
+    max-width: 100vw !important;
+  }
+}

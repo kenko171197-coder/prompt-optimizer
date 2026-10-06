@@ -196,6 +196,17 @@
                       <NText strong class="image-card__label">{{ t('imageWorkspace.input.imageLabel', { index: index + 1 }) }}</NText>
                       <span class="image-card__drag-handle" aria-hidden="true">⋮⋮</span>
                     </div>
+                    <NSelect
+                      class="image-card__role"
+                      size="tiny"
+                      :value="item.role ?? IMAGE_ROLE_NONE"
+                      :options="imageRoleOptions"
+                      :disabled="optimizing || isIterating"
+                      :consistent-menu-width="false"
+                      :aria-label="t('imageWorkspace.input.imageRoleAriaLabel', { index: index + 1 })"
+                      :data-testid="`image-multiimage-card-${index + 1}-role`"
+                      @update:value="(value: string) => handleImageRoleChange(item.id, value)"
+                    />
                   </div>
 
                   <button
@@ -216,8 +227,8 @@
                 <NText depth="3">{{ imageInputHint }}</NText>
               </NSpace>
 
-              <NGrid :cols="24" :x-gap="8" responsive="screen">
-                <NGridItem :span="7" :xs="24" :sm="7">
+              <NGrid :cols="24" :x-gap="8" :y-gap="12" responsive="screen" item-responsive>
+                <NGridItem span="24 s:7">
                   <NSpace vertical :size="8">
                     <NFlex align="center" :size="6" :wrap="false">
                       <NText :depth="2" style="font-size: 14px; font-weight: 500; flex-shrink: 0;">
@@ -249,7 +260,7 @@
                   </NSpace>
                 </NGridItem>
 
-                <NGridItem :span="11" :xs="24" :sm="11">
+                <NGridItem span="24 s:11">
                   <NSpace vertical :size="8">
                     <NText :depth="2" style="font-size: 14px; font-weight: 500;">
                       {{ t('imageWorkspace.input.optimizeTemplate') }}
@@ -273,7 +284,7 @@
                   </NSpace>
                 </NGridItem>
 
-                <NGridItem :span="6" :xs="24" :sm="6" class="flex items-end justify-end">
+                <NGridItem span="24 s:6" class="flex items-end justify-end">
                   <NSpace :size="8">
                     <NButton
                       type="default"
@@ -619,7 +630,7 @@
 
 <script setup lang="ts">
 import { computed, inject, nextTick, onMounted, onUnmounted, reactive, ref, watch, toRef, type Ref } from 'vue'
-import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSpace, NText } from 'naive-ui'
+import { NButton, NCard, NEmpty, NFlex, NGrid, NGridItem, NIcon, NInput, NRadioButton, NRadioGroup, NSelect, NSpace, NText } from 'naive-ui'
 import { useI18n } from 'vue-i18n'
 import {
   applyPatchOperationsToText,
@@ -628,6 +639,7 @@ import {
   type ImageModelConfig,
   type ImageResult,
   type ImageResultItem,
+  type InputImageRole,
   type MultiImageGenerationRequest,
   type OptimizationMode,
   type PatchOperation,
@@ -657,7 +669,7 @@ import { useLocalPromptPreviewPanel } from '../../composables/prompt/useLocalPro
 import { buildPromptExecutionContext } from '../../utils/prompt-variables'
 import { runTasksWithExecutionMode } from '../../utils/runTasksSequentially'
 import { buildTestPanelVersionOptions, resolveTestPanelVersionSelection } from '../../utils/testPanelVersion'
-import { buildMultiImageVariantFingerprint } from '../../utils/multiimage-workspace'
+import { applyImageRoleNote, buildMultiImageVariantFingerprint } from '../../utils/multiimage-workspace'
 import { downloadImageSource } from '../../utils/image-download'
 import { getI18nErrorMessage } from '../../utils/error'
 import { withHistorySourceBindingMetadata } from '../../utils/history-source-binding'
@@ -690,6 +702,19 @@ const { prepareInputRefs: prepareImageInputRefs } = useImageInputPreparation()
 const services = inject<Ref<AppServices | null>>('services', ref(null))
 const variableManager = inject<VariableManagerHooks | null>('variableManager', null)
 const session = useImageMultiImageSession()
+
+const IMAGE_ROLE_NONE = 'none'
+
+const imageRoleOptions = computed(() => [
+  { label: t('imageWorkspace.input.imageRoleNone'), value: IMAGE_ROLE_NONE },
+  { label: t('imageWorkspace.input.imageRoleCharacter'), value: 'character' },
+  { label: t('imageWorkspace.input.imageRoleScene'), value: 'scene' },
+])
+
+const inputImageRoles = computed<Array<InputImageRole | null>>(() =>
+  session.inputImages.map((item) => item.role ?? null),
+)
+
 const tempVarsManager = useTemporaryVariables()
 const { imageModels, loadImageModels, generateMultiImage, validateMultiImageRequest } = useImageGeneration()
 
@@ -1336,6 +1361,11 @@ const removeImage = async (id: string) => {
   await session.saveSession()
 }
 
+const handleImageRoleChange = async (id: string, value: string) => {
+  session.setInputImageRole(id, value === 'character' || value === 'scene' ? value : null)
+  await session.saveSession()
+}
+
 const reorderImages = async (fromIndex: number, toIndex: number) => {
   if (fromIndex === toIndex) return
   if (fromIndex < 0 || toIndex < 0) return
@@ -1510,6 +1540,7 @@ const optimizePrompt = async () => {
       templateId: selectedTemplate.value.id,
       modelKey: selectedTextModelKey.value,
       inputImages: session.inputImages.map(({ b64, mimeType }) => ({ b64, mimeType })),
+      inputImageRoles: inputImageRoles.value,
     }
 
     await promptService.value.optimizePromptStream(request, {
@@ -1780,7 +1811,7 @@ const getVariantRequest = (id: TestVariantId) => {
     return null
   }
   return {
-    prompt: ctx.renderedContent,
+    prompt: applyImageRoleNote(ctx.renderedContent, inputImageRoles.value),
     configId: modelKey,
     inputImages: session.inputImages.map(({ b64, mimeType }) => ({ b64, mimeType })),
     count: 1,
@@ -1793,7 +1824,10 @@ const getVariantFingerprint = (id: TestVariantId) =>
     selection: variantVersionModels[id].value,
     resolvedVersion: resolvePromptForSelection(variantVersionModels[id].value).resolvedVersion,
     modelKey: (variantModelKeyModels[id].value || '').trim(),
-    prompt: resolvePromptForSelection(variantVersionModels[id].value).text || '',
+    prompt: applyImageRoleNote(
+      resolvePromptForSelection(variantVersionModels[id].value).text || '',
+      inputImageRoles.value,
+    ),
     variables: {
       ...mergedGenerationVariables.value,
       ...buildRuntimePredefinedVariables(resolvePromptForSelection(variantVersionModels[id].value)),
@@ -2126,6 +2160,7 @@ onUnmounted(() => {
   letter-spacing: -1px;
 }
 .image-card__label { flex: 1; min-width: 0; text-align: left; }
+.image-card__role { width: 100%; }
 .image-upload-card { width: 116px; min-height: 140px; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 8px; padding: 8px; border: 1px dashed var(--n-border-color); border-radius: 14px; background: var(--n-color-embedded); color: var(--n-text-color-2); cursor: pointer; appearance: none; font: inherit; text-align: center; transition: border-color 0.18s ease, box-shadow 0.18s ease, color 0.18s ease, transform 0.18s ease; }
 .image-upload-card:hover { border-color: var(--n-border-color-hover); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05); transform: translateY(-1px); }
 .image-upload-card:focus-visible { outline: none; border-color: var(--n-primary-color); box-shadow: 0 0 0 2px var(--n-primary-color-suppl); }

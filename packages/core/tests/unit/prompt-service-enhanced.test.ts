@@ -201,6 +201,40 @@ describe('PromptService Enhanced Features', () => {
       expect(multimodalRequest.userPrompt).toContain('让人物动作更自然')
     })
 
+    it('should expose assigned input image roles to the optimize template', async () => {
+      mockTemplateManager.getTemplate.mockImplementation((id: string) => ({
+        id,
+        content: [
+          {
+            role: 'system',
+            content: 'roles:{{#inputImageRoles}} {{index}}={{role}}{{/inputImageRoles}} manifest={{{inputImagesJson}}}',
+          },
+          { role: 'user', content: '{{originalPrompt}}' },
+        ],
+        metadata: { templateType: 'multiimageOptimize', version: '1.0', lastModified: Date.now(), language: 'en' },
+      }))
+
+      const request: OptimizationRequest = {
+        optimizationMode: 'user' as const,
+        targetPrompt: 'Put the character into the scene',
+        modelKey: 'test-model',
+        templateId: 'multiimage-template',
+        inputImages: [
+          { b64: 'aW1hZ2Ux', mimeType: 'image/png' },
+          { b64: 'aW1hZ2Uy', mimeType: 'image/png' },
+          { b64: 'aW1hZ2Uz', mimeType: 'image/png' },
+        ],
+        inputImageRoles: ['scene', null, 'character'],
+      }
+
+      await promptService.optimizePrompt(request)
+
+      const { systemPrompt } = mockImageUnderstandingService.understand.mock.calls[0][0]
+      expect(systemPrompt).toContain('roles: 1=scene 3=character manifest=')
+      expect(systemPrompt).toContain('{"index":1,"label":"Image 1","mimeType":"image/png","role":"scene"}')
+      expect(systemPrompt).toContain('{"index":2,"label":"Image 2","mimeType":"image/png"}')
+    })
+
     it('should throw error for empty target prompt', async () => {
       const request: OptimizationRequest = {
         optimizationMode: 'system' as const,

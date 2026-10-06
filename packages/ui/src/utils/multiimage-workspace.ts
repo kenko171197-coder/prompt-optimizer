@@ -1,4 +1,4 @@
-import type { ImageInputRef } from '@prompt-optimizer/core'
+import type { ImageInputRef, InputImageRole } from '@prompt-optimizer/core'
 
 import { hashString, hashVariables } from './prompt-variables'
 
@@ -48,4 +48,31 @@ export const buildMultiImageVariantFingerprint = ({
   const imageSignature = getMultiImageSignature(inputImages || [])
 
   return `${String(selection)}:${resolvedVersion}:${modelKey}:${promptHash}:${varsHash}:${imageSignature}`
+}
+
+/**
+ * Plain-language note telling the image model what each tagged input image is
+ * for. Image models only see "Image N" positions, so without this a role picked
+ * in the UI would never reach generation unless the prompt repeated it.
+ */
+export const buildImageRoleNote = (roles: Array<InputImageRole | null | undefined>): string =>
+  roles
+    .flatMap((role, index) => {
+      const label = `Image ${index + 1}`
+      if (role === 'character') {
+        return [`${label} is the character reference: keep the same character identity (face, hairstyle, body shape, outfit and distinctive features).`]
+      }
+      if (role === 'scene') {
+        return [`${label} is the scene reference: use its environment, layout, lighting and atmosphere as the setting.`]
+      }
+      return []
+    })
+    .join(' ')
+
+export const applyImageRoleNote = (
+  prompt: string,
+  roles: Array<InputImageRole | null | undefined>,
+): string => {
+  const note = buildImageRoleNote(roles)
+  return note ? `${note}\n\n${prompt}` : prompt
 }
